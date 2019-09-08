@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/alvivi/logger_iex_backend.svg?branch=master)](https://travis-ci.org/alvivi/logger_iex_backend)
 [![Coverage Status](https://coveralls.io/repos/github/alvivi/logger_iex_backend/badge.svg?branch=master)](https://coveralls.io/github/alvivi/logger_iex_backend?branch=master)
+[![Docs](https://img.shields.io/badge/hex-1.0.0-success)](https://hexdocs.pm/logger_iex_backend/1.0.0/LoggerIexBackend.html)
 
 # LoggerIexBackend
 
