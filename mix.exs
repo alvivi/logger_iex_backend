@@ -9,8 +9,11 @@ defmodule LoggerIexBackend.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
+      package: package(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [coveralls: :test]
+      preferred_cli_env: [coveralls: :test],
+      name: "LoggerIexBackend",
+      description: "A Logger Backend for IEx interactive sessions."
     ]
   end
 
@@ -26,10 +29,17 @@ defmodule LoggerIexBackend.MixProject do
     ]
   end
 
-  def docs do
+  defp docs do
     [
       main: "LoggerIexBackend",
       extras: ["README.md"]
+    ]
+  end
+
+  defp package() do
+    [
+      licenses: ["Apache-2.0"],
+      links: %{"GitHub" => "https://github.com/alvivi/logger_iex_backend"}
     ]
   end
 end
