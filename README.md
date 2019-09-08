@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/alvivi/logger_iex_backend.svg?branch=master)](https://travis-ci.org/alvivi/logger_iex_backend)
+
 # LoggerIexBackend
 
 *LoggerIexBackend* is a
