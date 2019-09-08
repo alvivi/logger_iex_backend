@@ -1,6 +1,53 @@
 defmodule LoggerIexBackend do
   @moduledoc ~s"""
-  TODO
+  A [Logger Backend](https://hexdocs.pm/logger/master/Logger.html#module-backends)
+  for [IEx](https://hexdocs.pm/iex/IEx.html) interactive sessions.
+
+  LoggerIexBackend enables logging debugging in *IEx* interactive sessions. See
+  `start/0` and `set_rules/1` to learn how to use this module.
+
+  ## Example
+
+  Given the following code example:
+
+      defmodule Example do
+        require Logger
+
+        def foo() do
+          Logger.debug("A foo message")
+        end
+
+        defmodule Bar do
+          require Logger
+
+          def bar() do
+            Logger.info("A bar message")
+          end
+        end
+      end
+
+  We can use *LoggerIexBackend* in a interactive shell like this:
+
+      iex> Example.foo()
+      00:00:01.000 [debug] A foo message
+      :ok
+      iex> LoggerIexBackend.start()
+      {:ok, #PID<0.42.0>}
+      iex> Example.foo()
+      :ok # NOTE that by default, all logs are disabled by LoggerIexBackend
+      iex> LoggerIexBackend.set_rules(allow: :info)
+      :ok
+      iex> Example.foo()
+      :ok # No logs here yet
+      iex> Example.Bar.bar()
+      :ok
+      00:00:02.000 [info]  A bar message
+      iex> LoggerIexBackend.set_rules(allow: ~r/foo/) # Enable logs by message
+      iex> LoggerIexBackend.set_rules(allow: [module: Example]) # Enable logs by module
+      :ok
+      iex> Example.foo()
+      :ok
+      00:00:03.000 [debug] A foo message
   """
 
   alias Logger.Backends.Console
@@ -12,21 +59,47 @@ defmodule LoggerIexBackend do
   defstruct manager: nil,
             rules: []
 
-  @typedoc "TODO"
-  @type action() :: :allow | :disallow
+  @typedoc "A predicate to allow or disallow a set of log entries."
+  @type rule() :: {:allow, argument()} | {:disallow, argument()}
 
-  @typedoc "TODO"
-  @type rule() :: {action(), scope()}
-
-  @typedoc "TODO"
+  @typedoc "A list of `t:rule/0`s."
   @type rules() :: [rule()]
 
-  @typedoc "TODO"
-  @type scope() ::
+  @typedoc """
+  A condition used to filter logs.
+
+  Any of the following arguments can be used as rule to allow or disallow
+  matching logs:
+
+  * `all`: matches all logs.
+  * `:debug`, `:info`, `:error`, etc. Matches the specified log level.
+  * A list of the previous values.
+  * A string contained in log's messages.
+  * A regular expression to test log's messages.
+  * A tuple to match any other metadata value.
+
+  ## Examples
+
+      # Enable all logs:
+      LoggerIexBackend.set_rules(allow: :all)
+
+      # Enable logs by level:
+      LoggerIexBackend.set_rules(allow: :debug)
+      LoggerIexBackend.set_rules(allow: [:warn, :error])
+
+      # Enable logs by messages:
+      LoggerIexBackend.set_rules(allow: "foo") # All messages containing foo.
+      LoggerIexBackend.set_rules(allow: ~r/foo/)
+
+      # Enable logs by metadata:
+      LoggerIexBackend.set_rules(allow: {:module, MyModule})
+      LoggerIexBackend.set_rules(allow: {:file, "my_file.ex"})
+  """
+  @type argument() ::
           :all
           | Logger.level()
           | [Logger.level()]
-          | binary()
+          | String.t()
           | Regex.t()
           | {atom(), Regex.t()}
           | {atom(), term()}
@@ -35,14 +108,26 @@ defmodule LoggerIexBackend do
   @typep logger_entry() :: {Logger.level(), pid(), logger_message()}
   @typep logger_event() :: logger_entry() | :flush
 
-  @doc "TODO"
+  @doc """
+  Starts the *IEx Logger Backend*.
+
+  This function will stop the current console backend, if enabled, and start
+  the *IEx Backend*. All logs will be filtered out by default. Use
+  `set_rules/1` to allow log messages to be printed.
+  """
   @spec start() :: :ok | {:error, term()}
   def start() do
     Logger.BackendSupervisor.unwatch(:console)
     Logger.BackendSupervisor.watch(__MODULE__)
   end
 
-  @doc "TODO"
+  @doc """
+  Set the current rules for log filtering.
+
+  This function will remove previous rules for filtering log messages and apply
+  the given new ones. More information about the kind of rules can be found at
+  `t:argument/0`.
+  """
   @spec set_rules(rule() | rules()) :: :ok
   def set_rules(rule_or_rules)
 
@@ -81,17 +166,16 @@ defmodule LoggerIexBackend do
   @impl true
   def handle_info(info, state)
 
-  def handle_info({:gen_event_EXIT, _handler, reason}, state)
+  def handle_info({:gen_event_EXIT, _handler, reason}, _state)
       when reason in [:normal, :shutdown] do
-    {:stop, reason, state}
+    :remove_handler
   end
 
-  def handle_info({:gen_event_EXIT, _handler, reason}, state) do
+  def handle_info({:gen_event_EXIT, _handler, reason}, _state) do
     IO.puts(:stderr, "console backend terminating: #{inspect(reason)}")
-    {:stop, reason, state}
+    :remove_handler
   end
 
-  @spec match_rules?(rules(), logger_event()) :: boolean()
   @spec match_rules?(rules(), logger_event()) :: boolean()
   defp match_rules?(_rules, :flush), do: true
 
