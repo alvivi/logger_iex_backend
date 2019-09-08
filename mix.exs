@@ -20,6 +20,7 @@ defmodule LoggerIexBackend.MixProject do
 
   defp deps do
     [
+      {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:excoveralls, "~> 0.11", only: :test}
     ]
