@@ -16,8 +16,9 @@ cache:
 jobs:
   include:
     - stage: test
-      script:
-        - mix test
+      script: mix test
     - stage: check formatted
       script: mix format --check-formatted
       before_install: skip
+    - stage: coverage
+      script: mix coveralls.travis
